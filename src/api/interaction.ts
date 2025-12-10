@@ -4,9 +4,12 @@ import type { Interaction, InteractionResult, ApiResponse } from '@/types'
 export const interactionApi = {
   /**
    * 检测药物相互作用
+   * 由于可能调用AI接口，设置5分钟超时
    */
   async checkInteractions(drugIds: string[]): Promise<ApiResponse<InteractionResult>> {
-    const response = await apiClient.post('/interactions/check', { drugIds })
+    const response = await apiClient.post('/interactions/check', { drugIds }, {
+      timeout: 300000 // 5分钟超时
+    })
     return response.data
   },
 
