@@ -1,5 +1,5 @@
 import apiClient from './axios'
-import type { InteractionResult, ApiResponse } from '@/types'
+import type { Interaction, InteractionResult, ApiResponse } from '@/types'
 
 export const interactionApi = {
   /**
@@ -7,6 +7,14 @@ export const interactionApi = {
    */
   async checkInteractions(drugIds: string[]): Promise<ApiResponse<InteractionResult>> {
     const response = await apiClient.post('/interactions/check', { drugIds })
+    return response.data
+  },
+
+  /**
+   * 获取相互作用详情
+   */
+  async getInteractionById(id: string): Promise<ApiResponse<Interaction>> {
+    const response = await apiClient.get(`/interactions/${id}`)
     return response.data
   }
 }

@@ -33,7 +33,7 @@ export const drugApi = {
   /**
    * AI分析药物
    */
-  async analyzeDrug(name: string): Promise<ApiResponse<{ name: string; analysis: string; source: 'ai' | 'cache' }>> {
+  async analyzeDrug(name: string): Promise<ApiResponse<Drug>> {
     const response = await apiClient.post('/drugs/analyze', { name })
     return response.data
   }

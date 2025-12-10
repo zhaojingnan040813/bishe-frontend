@@ -39,6 +39,8 @@ export interface GraphNode {
   name: string
   category: string
   value: number
+  source?: string
+  description?: string
 }
 
 export interface GraphEdge {
@@ -46,11 +48,37 @@ export interface GraphEdge {
   target: string
   value: number
   severity: 'low' | 'medium' | 'high'
+  interactionType?: string
+  description?: string
 }
 
 export interface GraphData {
   nodes: GraphNode[]
   edges: GraphEdge[]
+}
+
+export interface GraphStats {
+  totalDrugs: number
+  totalInteractions: number
+  severityDistribution: {
+    low: number
+    medium: number
+    high: number
+  }
+}
+
+export interface DrugInteractionStats {
+  drugId: string
+  drugName: string
+  totalInteractions: number
+  severityCounts: {
+    high: number
+    medium: number
+    low: number
+  }
+  highRiskCount: number
+  mediumRiskCount: number
+  lowRiskCount: number
 }
 
 export interface ApiResponse<T> {
