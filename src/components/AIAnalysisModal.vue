@@ -130,7 +130,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
-import { drugApi } from '@/api/drug'
+import { drugApi, type AnalyzeDrugResult } from '@/api/drug'
 import toast from '@/utils/toast'
 import type { Drug } from '@/types'
 
@@ -148,7 +148,7 @@ const emit = defineEmits<{
 const drugName = ref('')
 const loading = ref(false)
 const saving = ref(false)
-const analysisResult = ref<Drug | null>(null)
+const analysisResult = ref<AnalyzeDrugResult | null>(null)
 const error = ref('')
 
 // 重置状态

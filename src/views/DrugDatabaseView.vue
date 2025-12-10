@@ -215,7 +215,7 @@ const fetchDrugs = async () => {
     const response = await drugApi.getDrugs(currentPage.value, pageSize.value)
     if (response.success) {
       drugs.value = response.data
-      total.value = response.total
+      total.value = response.pagination.total
     }
   } catch (err: any) {
     toast.error('获取药物列表失败')
