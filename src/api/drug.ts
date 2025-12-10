@@ -1,6 +1,18 @@
 import apiClient from './axios'
 import type { Drug, ApiResponse, PaginatedResponse } from '@/types'
 
+export interface SaveDrugData {
+  name: string
+  genericName?: string
+  description: string
+  category: string
+  sideEffects?: string[]
+  contraindications?: string[]
+  dosage?: string
+  aiAnalysis?: string
+  source?: 'manual' | 'ai'
+}
+
 export const drugApi = {
   /**
    * 获取药物列表
@@ -31,13 +43,22 @@ export const drugApi = {
   },
 
   /**
-   * AI分析药物
+   * AI分析药物（不会自动保存到数据库）
    * 由于AI分析可能需要较长时间，设置5分钟超时
    */
   async analyzeDrug(name: string): Promise<ApiResponse<Drug>> {
     const response = await apiClient.post('/drugs/analyze', { name }, {
       timeout: 300000 // 5分钟超时
     })
+    return response.data
+  },
+
+  /**
+   * 保存药物到数据库
+   * 用于保存AI分析结果或手动添加药物
+   */
+  async saveDrug(drugData: SaveDrugData): Promise<ApiResponse<Drug>> {
+    const response = await apiClient.post('/drugs', drugData)
     return response.data
   }
 }

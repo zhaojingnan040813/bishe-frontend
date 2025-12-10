@@ -199,12 +199,29 @@ const handleSave = async () => {
   
   saving.value = true
   try {
-    // AI分析结果已经自动保存到数据库，这里只是提示用户
-    toast.success('已保存到数据库')
-    emit('saved', analysisResult.value)
-    emit('update:visible', false)
+    // 调用保存接口将AI分析结果保存到数据库
+    const response = await drugApi.saveDrug({
+      name: analysisResult.value.name,
+      genericName: analysisResult.value.genericName,
+      description: analysisResult.value.description,
+      category: analysisResult.value.category,
+      sideEffects: analysisResult.value.sideEffects,
+      contraindications: analysisResult.value.contraindications,
+      dosage: analysisResult.value.dosage,
+      aiAnalysis: analysisResult.value.aiAnalysis,
+      source: 'ai',
+    })
+    
+    if (response.success && response.data) {
+      toast.success('已保存到数据库')
+      emit('saved', response.data)
+      emit('update:visible', false)
+    } else {
+      toast.error(response.error?.message || '保存失败，请稍后重试')
+    }
   } catch (err: any) {
-    toast.error('保存失败，请稍后重试')
+    const errorMsg = err.response?.data?.error?.message || '保存失败，请稍后重试'
+    toast.error(errorMsg)
   } finally {
     saving.value = false
   }
