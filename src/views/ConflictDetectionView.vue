@@ -178,18 +178,19 @@
           </div>
         </div>
 
-        <!-- 药物关系图谱区域 -->
-        <div class="graph-section">
+        <!-- 药物关系图谱区域 - 仅在有检测结果时显示 -->
+        <div v-if="detectionResult && selectedDrugs.length >= 2" class="graph-section">
           <div class="section-header-bar">
             <div class="section-title-group">
               <span class="section-icon">🔗</span>
               <h2 class="section-title">药物关系图谱</h2>
             </div>
-            <p class="section-desc">可视化展示药物之间的相互作用关系，点击节点查看药物详情</p>
+            <p class="section-desc">可视化展示所选药物之间的相互作用关系，点击节点查看药物详情</p>
           </div>
-          <DrugGraph
-            ref="drugGraphRef"
-            height="550px"
+          <InteractionGraph
+            :drugs="selectedDrugs"
+            :interactions="detectionResult.interactions"
+            height="450px"
             @node-click="handleNodeClick"
           />
         </div>
@@ -209,12 +210,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { interactionApi } from '@/api/interaction'
-import { drugApi } from '@/api/drug'
 import DrugSelector from '@/components/DrugSelector.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
-import DrugGraph from '@/components/DrugGraph.vue'
+import InteractionGraph from '@/components/InteractionGraph.vue'
 import DrugDetailModal from '@/components/DrugDetailModal.vue'
-import type { Drug, InteractionResult, GraphNode } from '@/types'
+import type { Drug, InteractionResult } from '@/types'
 
 const router = useRouter()
 
@@ -224,7 +224,6 @@ const detectionResult = ref<InteractionResult | null>(null)
 const error = ref<string | null>(null)
 
 // 图谱相关
-const drugGraphRef = ref<InstanceType<typeof DrugGraph>>()
 const showDrugDetail = ref(false)
 const selectedDrugDetail = ref<Drug | null>(null)
 
@@ -232,17 +231,10 @@ const navigateTo = (path: string) => {
   router.push(path)
 }
 
-// 处理图谱节点点击
-const handleNodeClick = async (node: GraphNode) => {
-  try {
-    const response = await drugApi.getDrugById(node.id)
-    if (response.success && response.data) {
-      selectedDrugDetail.value = response.data
-      showDrugDetail.value = true
-    }
-  } catch (err) {
-    console.error('获取药物详情失败:', err)
-  }
+// 处理图谱节点点击 - 直接使用已选择的药物数据
+const handleNodeClick = (drug: Drug) => {
+  selectedDrugDetail.value = drug
+  showDrugDetail.value = true
 }
 
 const handleDetect = async () => {
