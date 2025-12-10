@@ -70,7 +70,7 @@
             </div>
 
             <!-- 检测结果 -->
-            <div class="result-card">
+            <div class="result-card result-card-main">
               <!-- 加载状态 -->
               <LoadingSpinner
                 v-if="detecting"
@@ -177,8 +177,31 @@
             </div>
           </div>
         </div>
+
+        <!-- 药物关系图谱区域 -->
+        <div class="graph-section">
+          <div class="section-header-bar">
+            <div class="section-title-group">
+              <span class="section-icon">🔗</span>
+              <h2 class="section-title">药物关系图谱</h2>
+            </div>
+            <p class="section-desc">可视化展示药物之间的相互作用关系，点击节点查看药物详情</p>
+          </div>
+          <DrugGraph
+            ref="drugGraphRef"
+            height="550px"
+            @node-click="handleNodeClick"
+          />
+        </div>
       </div>
     </main>
+
+    <!-- 药物详情弹窗 -->
+    <DrugDetailModal
+      v-model:visible="showDrugDetail"
+      :drug="selectedDrugDetail"
+      @close="showDrugDetail = false"
+    />
   </div>
 </template>
 
@@ -186,9 +209,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { interactionApi } from '@/api/interaction'
+import { drugApi } from '@/api/drug'
 import DrugSelector from '@/components/DrugSelector.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
-import type { Drug, InteractionResult } from '@/types'
+import DrugGraph from '@/components/DrugGraph.vue'
+import DrugDetailModal from '@/components/DrugDetailModal.vue'
+import type { Drug, InteractionResult, GraphNode } from '@/types'
 
 const router = useRouter()
 
@@ -197,8 +223,26 @@ const detecting = ref(false)
 const detectionResult = ref<InteractionResult | null>(null)
 const error = ref<string | null>(null)
 
+// 图谱相关
+const drugGraphRef = ref<InstanceType<typeof DrugGraph>>()
+const showDrugDetail = ref(false)
+const selectedDrugDetail = ref<Drug | null>(null)
+
 const navigateTo = (path: string) => {
   router.push(path)
+}
+
+// 处理图谱节点点击
+const handleNodeClick = async (node: GraphNode) => {
+  try {
+    const response = await drugApi.getDrugById(node.id)
+    if (response.success && response.data) {
+      selectedDrugDetail.value = response.data
+      showDrugDetail.value = true
+    }
+  } catch (err) {
+    console.error('获取药物详情失败:', err)
+  }
 }
 
 const handleDetect = async () => {
@@ -883,6 +927,46 @@ const getSourceLabel = (source: string) => {
   margin: 0;
 }
 
+/* 图谱区域 */
+.graph-section {
+  margin-top: 3rem;
+}
+
+.section-header-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-icon {
+  font-size: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.section-desc {
+  font-size: 0.95rem;
+  color: #71717a;
+  margin: 0;
+}
+
+.result-card-main {
+  min-height: 500px;
+}
+
 /* 响应式 */
 @media (max-width: 1024px) {
   .detection-grid {
@@ -910,6 +994,14 @@ const getSourceLabel = (source: string) => {
   .empty-illustration {
     font-size: 2rem;
     gap: 0.5rem;
+  }
+  
+  .graph-section {
+    margin-top: 2rem;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
   }
 }
 </style>
