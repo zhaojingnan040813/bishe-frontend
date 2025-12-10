@@ -32,9 +32,12 @@ export const drugApi = {
 
   /**
    * AI分析药物
+   * 由于AI分析可能需要较长时间，设置5分钟超时
    */
   async analyzeDrug(name: string): Promise<ApiResponse<Drug>> {
-    const response = await apiClient.post('/drugs/analyze', { name })
+    const response = await apiClient.post('/drugs/analyze', { name }, {
+      timeout: 300000 // 5分钟超时
+    })
     return response.data
   }
 }
