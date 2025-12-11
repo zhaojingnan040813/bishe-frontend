@@ -16,7 +16,7 @@
             <span class="pill-half pill-left"></span>
             <span class="pill-half pill-right"></span>
           </div>
-          <span class="logo-text">DrugSafe<span class="logo-accent">AI</span></span>
+          <span class="logo-text">DrugSafe1<span class="logo-accent">AI</span></span>
         </div>
         <nav class="nav-links">
           <router-link 
