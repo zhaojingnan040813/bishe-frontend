@@ -14,7 +14,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // target: 'http://localhost:3000',
-        target: 'https://drug-interaction-net-165954-5-1362504576.sh.run.tcloudbase.com',
+        target: 'https://drug-interaction-net-165954-5-1362504576.sh.run.tcloudbase.com/api',
         changeOrigin: true
       }
     }
