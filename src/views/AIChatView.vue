@@ -34,7 +34,7 @@
     <main class="main-content">
       <div class="chat-container">
         <!-- 聊天头部 -->
-        <div class="chat-header">
+        <!-- <div class="chat-header">
           <div class="chat-title">
             <span class="chat-icon">🤖</span>
             <h1>AI药物问答</h1>
@@ -47,7 +47,7 @@
             <span class="clear-icon">🗑️</span>
             清空对话
           </button>
-        </div>
+        </div> -->
 
         <!-- 消息列表区域 -->
         <div class="messages-area" ref="messagesContainer">
@@ -575,13 +575,13 @@ watch(
 }
 
 /* 聊天头部 */
-.chat-header {
+/* .chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
+} */
 
 .chat-title {
   display: flex;
@@ -1050,9 +1050,9 @@ watch(
     padding: 0 1rem;
   }
 
-  .chat-header {
+  /* .chat-header {
     padding: 1rem 0;
-  }
+  } */
 
   .chat-title h1 {
     font-size: 1.25rem;
