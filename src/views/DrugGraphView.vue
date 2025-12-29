@@ -21,6 +21,7 @@
           <router-link to="/conflict-detection" class="nav-link">冲突检测</router-link>
           <router-link to="/drug-graph" class="nav-link active">药物图谱</router-link>
           <router-link to="/drug-database" class="nav-link">药物库</router-link>
+          <router-link to="/ai-chat" class="nav-link">AI问答</router-link>
         </nav>
       </div>
     </header>

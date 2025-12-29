@@ -165,7 +165,8 @@ const router = useRouter()
 const navLinks = [
   { name: '冲突检测', path: '/conflict-detection' },
   { name: '药物图谱', path: '/drug-graph' },
-  { name: '药物库', path: '/drug-database' }
+  { name: '药物库', path: '/drug-database' },
+  { name: 'AI问答', path: '/ai-chat' }
 ]
 
 // 功能卡片数据
