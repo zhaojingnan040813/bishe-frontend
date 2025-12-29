@@ -193,10 +193,10 @@ const features = [
     glowColor: 'rgba(16, 185, 129, 0.15)'
   },
   {
-    path: '/',
-    icon: '🏠',
-    title: '首页导航',
-    description: '系统功能总览，快速导航入口',
+    path: '/ai-chat',
+    icon: '🤖',
+    title: 'AI问答',
+    description: '智能药物助手，实时解答用药疑问，提供专业建议',
     glowColor: 'rgba(139, 92, 246, 0.15)'
   }
 ]
