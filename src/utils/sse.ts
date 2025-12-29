@@ -25,6 +25,8 @@ export interface SSEOptions {
     message: string
     /** 对话历史 */
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
+    /** 模型名称 */
+    model?: string
     /** 收到内容时的回调 */
     onContent?: (text: string) => void
     /** 开始时的回调 */
@@ -95,6 +97,7 @@ export async function connectSSE(options: SSEOptions): Promise<void> {
     const {
         message,
         history = [],
+        model = 'deepseek-chat',
         onContent,
         onStart,
         onDone,
@@ -118,7 +121,7 @@ export async function connectSSE(options: SSEOptions): Promise<void> {
                 'Content-Type': 'application/json',
                 'Accept': 'text/event-stream'
             },
-            body: JSON.stringify({ message, history }),
+            body: JSON.stringify({ message, history, model }),
             signal: controller.signal
         })
 

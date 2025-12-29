@@ -80,8 +80,25 @@
 
 
       </div>
-              <!-- 输入区域 -->
-        <div class="input-area">
+      
+      <!-- 输入区域 -->
+      <div class="input-area">
+        <div class="input-area-content">
+          <!-- 左侧操作按钮 -->
+          <div class="input-actions-left">
+            <button 
+              class="action-btn new-chat-btn"
+              @click="handleNewChat"
+              title="新对话"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="btn-text">新对话</span>
+            </button>
+          </div>
+
+          <!-- 中间输入框 -->
           <div class="input-wrapper">
             <textarea
               ref="inputRef"
@@ -106,14 +123,47 @@
               </span>
             </button>
           </div>
-          <!-- <p class="input-hint">按 Enter 发送，Shift + Enter 换行</p> -->
+
+          <!-- 右侧模型选择 -->
+          <div class="input-actions-right">
+            <div class="model-selector">
+              <button 
+                class="model-btn"
+                @click="toggleModelDropdown"
+                title="切换模型"
+              >
+                <span class="model-icon">🧠</span>
+                <span class="model-name">{{ currentModelLabel }}</span>
+                <svg class="dropdown-arrow" :class="{ 'open': showModelDropdown }" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div v-if="showModelDropdown" class="model-dropdown">
+                <button 
+                  v-for="model in availableModels" 
+                  :key="model.value"
+                  class="model-option"
+                  :class="{ 'active': currentModel === model.value }"
+                  @click="selectModel(model.value)"
+                >
+                  <span class="option-icon">{{ model.icon }}</span>
+                  <div class="option-info">
+                    <span class="option-name">{{ model.label }}</span>
+                    <span class="option-desc">{{ model.description }}</span>
+                  </div>
+                  <span v-if="currentModel === model.value" class="check-icon">✓</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import { connectSSE } from '@/utils/sse'
@@ -129,6 +179,52 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 const messagesContainer = ref<HTMLDivElement | null>(null)
 const inputText = ref('')
 const isStreaming = ref(false)
+
+// 模型相关
+const showModelDropdown = ref(false)
+const currentModel = ref('deepseek-chat')
+
+// DeepSeek 可用模型
+const availableModels = [
+  { 
+    value: 'deepseek-chat', 
+    label: 'DeepSeek Chat', 
+    icon: '💬',
+    description: '通用对话，适合日常问答'
+  },
+  { 
+    value: 'deepseek-reasoner', 
+    label: 'DeepSeek Reasoner', 
+    icon: '🧠',
+    description: '深度推理，适合复杂分析'
+  }
+]
+
+const currentModelLabel = computed(() => {
+  const model = availableModels.find(m => m.value === currentModel.value)
+  return model ? model.label : 'DeepSeek Chat'
+})
+
+// 切换模型下拉框
+const toggleModelDropdown = () => {
+  showModelDropdown.value = !showModelDropdown.value
+}
+
+// 选择模型
+const selectModel = (modelValue: string) => {
+  currentModel.value = modelValue
+  showModelDropdown.value = false
+  // 保存到localStorage
+  localStorage.setItem('ai-chat-model', modelValue)
+}
+
+// 点击外部关闭下拉框
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.model-selector')) {
+    showModelDropdown.value = false
+  }
+}
 
 // 导航链接
 const navLinks = [
@@ -146,6 +242,14 @@ const canSend = computed(() => {
 // 导航函数
 const navigateTo = (path: string) => {
   router.push(path)
+}
+
+// 新对话
+const handleNewChat = () => {
+  chatStore.clearHistory()
+  clearStorage()
+  inputText.value = ''
+  inputRef.value?.focus()
 }
 
 // 自动调整输入框高度
@@ -191,6 +295,7 @@ const handleSend = async () => {
     await connectSSE({
       message,
       history,
+      model: currentModel.value,
       onStart: () => {
         // 流开始
       },
@@ -254,8 +359,20 @@ onMounted(() => {
   if (history && history.messages.length > 0) {
     chatStore.setMessages(history.messages)
   }
+  // 加载保存的模型设置
+  const savedModel = localStorage.getItem('ai-chat-model')
+  if (savedModel && availableModels.some(m => m.value === savedModel)) {
+    currentModel.value = savedModel
+  }
   // 聚焦输入框
   inputRef.value?.focus()
+  // 添加点击外部关闭下拉框的事件
+  document.addEventListener('click', handleClickOutside)
+})
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // 监听消息变化，保存到LocalStorage
@@ -651,12 +768,182 @@ watch(
   z-index: 50;
 }
 
-.input-area .input-wrapper {
+.input-area-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   max-width: 1100px;
   margin: 0 auto;
 }
 
+/* 左侧操作按钮 */
+.input-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.new-chat-btn:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.action-btn .btn-text {
+  font-weight: 500;
+}
+
+/* 右侧模型选择 */
+.input-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.model-selector {
+  position: relative;
+}
+
+.model-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.model-btn:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+}
+
+.model-icon {
+  font-size: 1rem;
+}
+
+.model-name {
+  font-weight: 500;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.model-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 260px;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  animation: dropdownIn 0.2s ease-out;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.model-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #e4e4e7;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.model-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.model-option.active {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.option-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.option-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.option-desc {
+  font-size: 0.75rem;
+  color: #71717a;
+}
+
+.check-icon {
+  color: #a78bfa;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .input-wrapper {
+  flex: 1;
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
@@ -785,12 +1072,46 @@ watch(
   }
 
   .input-area {
-    padding: 1rem 1rem 1.5rem;
+    padding: 0.75rem 1rem 1rem;
+  }
+
+  .input-area-content {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .input-actions-left,
+  .input-actions-right {
+    order: 2;
   }
 
   .input-wrapper {
+    order: 1;
+    width: 100%;
     padding: 0.5rem;
     border-radius: 12px;
+  }
+
+  .action-btn .btn-text {
+    display: none;
+  }
+
+  .action-btn {
+    padding: 0.5rem;
+  }
+
+  .model-name {
+    display: none;
+  }
+
+  .model-btn {
+    padding: 0.5rem;
+  }
+
+  .model-dropdown {
+    right: auto;
+    left: 0;
+    min-width: 220px;
   }
 
   .message-input {
