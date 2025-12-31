@@ -14,8 +14,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        // target: 'http://localhost:3000',
-        target: 'https://zjn-backend-165954-5-1362504576.sh.run.tcloudbase.com',
+        target: 'http://localhost:3000',
+        // target: 'https://zjn-backend-165954-5-1362504576.sh.run.tcloudbase.com',
         changeOrigin: true
       }
     }
