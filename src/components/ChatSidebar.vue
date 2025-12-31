@@ -1,5 +1,15 @@
 <template>
   <div class="chat-sidebar" :class="{ collapsed: isCollapsed }">
+    <!-- 确认弹窗 -->
+    <ConfirmDialog
+      v-model:visible="dialogVisible"
+      :title="dialogConfig.title"
+      :message="dialogConfig.message"
+      :type="dialogConfig.type"
+      :confirm-text="dialogConfig.confirmText"
+      @confirm="dialogConfig.onConfirm"
+    />
+
     <!-- 折叠按钮 -->
     <button class="collapse-btn" @click="toggleCollapse" :title="isCollapsed ? '展开侧边栏' : '收起侧边栏'">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :class="{ rotated: isCollapsed }">
@@ -84,9 +94,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import type { ChatSession } from '@/utils/chatDB'
 import { searchSessions, deleteSession, clearAllSessions } from '@/utils/chatDB'
+import ConfirmDialog from './ConfirmDialog.vue'
 
 interface Props {
   sessions: ChatSession[]
@@ -110,6 +121,16 @@ const isCollapsed = ref(false)
 const searchKeyword = ref('')
 const filteredSessions = ref<ChatSession[]>([])
 const searchTimeout = ref<number | null>(null)
+
+// 弹窗相关
+const dialogVisible = ref(false)
+const dialogConfig = reactive({
+  title: '',
+  message: '',
+  type: 'warning' as 'warning' | 'danger',
+  confirmText: '确定',
+  onConfirm: () => {}
+})
 
 // 初始化时显示所有会话
 onMounted(() => {
@@ -145,19 +166,29 @@ const clearSearch = () => {
   filteredSessions.value = props.sessions
 }
 
-const handleDelete = async (id: string) => {
-  if (confirm('确定要删除这个对话吗？')) {
+const handleDelete = (id: string) => {
+  dialogConfig.title = '删除对话'
+  dialogConfig.message = '确定要删除这个对话吗？删除后无法恢复。'
+  dialogConfig.type = 'warning'
+  dialogConfig.confirmText = '删除'
+  dialogConfig.onConfirm = async () => {
     await deleteSession(id)
     emit('deleteSession', id)
     emit('refresh')
   }
+  dialogVisible.value = true
 }
 
-const handleClearAll = async () => {
-  if (confirm('确定要清空所有聊天记录吗？此操作不可恢复。')) {
+const handleClearAll = () => {
+  dialogConfig.title = '清空所有记录'
+  dialogConfig.message = '确定要清空所有聊天记录吗？此操作不可恢复。'
+  dialogConfig.type = 'danger'
+  dialogConfig.confirmText = '清空'
+  dialogConfig.onConfirm = async () => {
     await clearAllSessions()
     emit('clearAll')
   }
+  dialogVisible.value = true
 }
 
 const formatTime = (timestamp: number): string => {
