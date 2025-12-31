@@ -23,6 +23,14 @@ export interface AnalyzeDrugResult extends Omit<Drug, '_id'> {
   _id?: string
 }
 
+/**
+ * 药物名称验证结果
+ */
+export interface ValidateDrugNameResult {
+  valid: boolean
+  reason: string
+}
+
 export const drugApi = {
   /**
    * 获取药物列表
@@ -74,6 +82,17 @@ export const drugApi = {
    */
   async saveDrug(drugData: SaveDrugData): Promise<ApiResponse<Drug>> {
     const response = await apiClient.post('/drugs', drugData)
+    return response.data
+  },
+
+  /**
+   * 验证输入是否为有效的药物名称
+   * POST /api/drugs/validate-name
+   */
+  async validateDrugName(name: string): Promise<ApiResponse<ValidateDrugNameResult>> {
+    const response = await apiClient.post('/drugs/validate-name', { name }, {
+      timeout: 20000 // 20秒超时
+    })
     return response.data
   }
 }

@@ -3,7 +3,7 @@
     :visible="visible"
     title="AI智能分析"
     size="medium"
-    :close-on-overlay="!loading"
+    :close-on-overlay="!loading && !validating"
     @update:visible="handleVisibleChange"
     @close="$emit('close')"
   >
@@ -17,15 +17,20 @@
             type="text"
             class="drug-input"
             placeholder="请输入要分析的药物名称..."
-            :disabled="loading"
+            :disabled="loading || validating"
             @keyup.enter="handleAnalyze"
           />
           <button 
             class="analyze-btn" 
-            :disabled="!drugName.trim() || loading"
+            :disabled="!drugName.trim() || loading || validating"
             @click="handleAnalyze"
           >
-            <span v-if="loading" class="btn-loading">
+            <span v-if="validating" class="btn-loading">
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
+            </span>
+            <span v-else-if="loading" class="btn-loading">
               <span class="loading-dot"></span>
               <span class="loading-dot"></span>
               <span class="loading-dot"></span>
@@ -36,8 +41,21 @@
         <p class="input-hint">AI将为您分析该药物的详细信息、用法用量、副作用等</p>
       </div>
 
+      <!-- 验证状态 -->
+      <div v-if="validating" class="loading-section">
+        <div class="ai-thinking">
+          <div class="thinking-animation">
+            <span class="thinking-dot"></span>
+            <span class="thinking-dot"></span>
+            <span class="thinking-dot"></span>
+          </div>
+          <p class="thinking-text">正在验证输入...</p>
+          <p class="thinking-hint">AI正在判断是否为有效的药物名称</p>
+        </div>
+      </div>
+
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-section">
+      <div v-else-if="loading" class="loading-section">
         <div class="ai-thinking">
           <div class="thinking-animation">
             <span class="thinking-dot"></span>
@@ -111,7 +129,7 @@
     </div>
 
     <template #footer>
-      <button class="btn-secondary" @click="handleVisibleChange(false)" :disabled="loading">
+      <button class="btn-secondary" @click="handleVisibleChange(false)" :disabled="loading || validating">
         取消
       </button>
       <button 
@@ -147,6 +165,7 @@ const emit = defineEmits<{
 
 const drugName = ref('')
 const loading = ref(false)
+const validating = ref(false)
 const saving = ref(false)
 const analysisResult = ref<AnalyzeDrugResult | null>(null)
 const error = ref('')
@@ -161,19 +180,39 @@ watch(() => props.visible, (val) => {
 })
 
 const handleVisibleChange = (val: boolean) => {
-  if (loading.value) return
+  if (loading.value || validating.value) return
   emit('update:visible', val)
 }
 
 const handleAnalyze = async () => {
-  if (!drugName.value.trim() || loading.value) return
+  if (!drugName.value.trim() || loading.value || validating.value) return
   
-  loading.value = true
+  const inputName = drugName.value.trim()
   error.value = ''
   analysisResult.value = null
   
+  // 第一步：验证输入是否为有效的药物名称
+  validating.value = true
   try {
-    const response = await drugApi.analyzeDrug(drugName.value.trim())
+    const validateResponse = await drugApi.validateDrugName(inputName)
+    if (validateResponse.success && validateResponse.data) {
+      if (!validateResponse.data.valid) {
+        error.value = `输入无效：${validateResponse.data.reason}`
+        toast.warning(error.value)
+        validating.value = false
+        return
+      }
+    }
+  } catch (err: any) {
+    // 验证接口失败时不阻止分析，继续执行
+    console.warn('药物名称验证失败，继续分析', err)
+  }
+  validating.value = false
+  
+  // 第二步：调用AI分析
+  loading.value = true
+  try {
+    const response = await drugApi.analyzeDrug(inputName)
     if (response.success && response.data) {
       analysisResult.value = response.data
       toast.success('分析完成')
