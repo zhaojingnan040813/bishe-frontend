@@ -151,9 +151,10 @@ const renderedContent = computed(() => {
 }
 
 .message-user .message-body {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: #fff;
   border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.4);
 }
 
 .message-user .message-header {
@@ -162,10 +163,11 @@ const renderedContent = computed(() => {
 
 /* AI消息 - 左侧灰色 */
 .message-assistant .message-body {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #e4e4e7;
   border-radius: 18px 18px 18px 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* 头像 */
@@ -232,29 +234,29 @@ const renderedContent = computed(() => {
 .message-text :deep(.md-h2) {
   font-size: 1.25rem;
   font-weight: 600;
-  margin: 1rem 0 0.5rem;
+  margin: 0.6rem 0 0.3rem;
   color: inherit;
 }
 
 .message-text :deep(.md-h3) {
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0.875rem 0 0.375rem;
+  margin: 0.5rem 0 0.25rem;
   color: inherit;
 }
 
 .message-text :deep(.md-h4) {
   font-size: 1rem;
   font-weight: 600;
-  margin: 0.75rem 0 0.25rem;
+  margin: 0.4rem 0 0.2rem;
   color: inherit;
 }
 
 .message-text :deep(.code-block) {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
-  padding: 0.875rem 1rem;
-  margin: 0.75rem 0;
+  padding: 0.75rem 0.875rem;
+  margin: 0.5rem 0;
   overflow-x: auto;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
   font-size: 0.85rem;
@@ -262,7 +264,8 @@ const renderedContent = computed(() => {
 }
 
 .message-text :deep(.inline-code) {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
@@ -271,23 +274,26 @@ const renderedContent = computed(() => {
 
 .message-text :deep(.md-ul),
 .message-text :deep(.md-ol) {
-  margin: 0.5rem 0;
+  margin: 0 0;
   padding-left: 1.5rem;
 }
 
 .message-text :deep(.md-li),
 .message-text :deep(.md-oli) {
-  margin: 0.25rem 0;
+  margin: 0.15rem 0;
 }
 
 .message-text :deep(.md-link) {
-  color: #60a5fa;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: #93c5fd;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(147, 197, 253, 0.3);
+  transition: all 0.2s ease;
 }
 
 .message-text :deep(.md-link:hover) {
-  color: #93c5fd;
+  color: #bfdbfe;
+  border-bottom-color: rgba(191, 219, 254, 0.8);
+  background: rgba(147, 197, 253, 0.1);
 }
 
 .message-text :deep(strong) {
