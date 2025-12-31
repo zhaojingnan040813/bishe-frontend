@@ -30,8 +30,22 @@
       </div>
     </header>
 
-    <!-- 主要内容区域 -->
-    <main class="main-content">
+    <!-- 主要内容区域（含侧边栏） -->
+    <div class="main-wrapper">
+      <!-- 历史会话侧边栏 -->
+      <ChatSidebar
+        :sessions="sessions"
+        :current-session-id="currentSessionId"
+        :loading="sessionsLoading"
+        @new-chat="handleNewChat"
+        @select-session="handleSelectSession"
+        @delete-session="handleDeleteSession"
+        @clear-all="handleClearAll"
+        @refresh="loadSessions"
+      />
+
+      <!-- 主要内容区域 -->
+      <main class="main-content">
       <div class="chat-container">
         <!-- 聊天头部 -->
         <!-- <div class="chat-header">
@@ -84,20 +98,6 @@
       <!-- 输入区域 -->
       <div class="input-area">
         <div class="input-area-content">
-          <!-- 左侧操作按钮 -->
-          <div class="input-actions-left">
-            <button 
-              class="action-btn new-chat-btn"
-              @click="handleNewChat"
-              title="新对话"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span class="btn-text">新对话</span>
-            </button>
-          </div>
-
           <!-- 中间输入框 -->
           <div class="input-wrapper">
             <textarea
@@ -158,7 +158,8 @@
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
@@ -167,9 +168,18 @@ import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import { connectSSE } from '@/utils/sse'
-import { saveHistory, loadHistory, clearStorage } from '@/utils/storage'
 import ChatMessage from '@/components/ChatMessage.vue'
 import PromptCard from '@/components/PromptCard.vue'
+import ChatSidebar from '@/components/ChatSidebar.vue'
+import {
+  type ChatSession,
+  createSession,
+  updateSession,
+  getSession,
+  getAllSessions,
+  deleteSession,
+  clearAllSessions
+} from '@/utils/chatDB'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -179,6 +189,11 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 const messagesContainer = ref<HTMLDivElement | null>(null)
 const inputText = ref('')
 const isStreaming = ref(false)
+
+// 会话管理
+const sessions = ref<ChatSession[]>([])
+const currentSessionId = ref<string | null>(null)
+const sessionsLoading = ref(false)
 
 // 模型相关
 const showModelDropdown = ref(false)
@@ -245,11 +260,71 @@ const navigateTo = (path: string) => {
 }
 
 // 新对话
-const handleNewChat = () => {
+const handleNewChat = async () => {
+  // 如果当前有消息，先保存
+  if (chatStore.hasMessages && currentSessionId.value) {
+    await updateSession(currentSessionId.value, { messages: chatStore.messages })
+  }
+  
+  // 创建新会话
+  const newSession = await createSession([])
+  currentSessionId.value = newSession.id
   chatStore.clearHistory()
-  clearStorage()
+  inputText.value = ''
+  await loadSessions()
+  inputRef.value?.focus()
+}
+
+// 选择会话
+const handleSelectSession = async (sessionId: string) => {
+  if (sessionId === currentSessionId.value) return
+  
+  // 保存当前会话
+  if (chatStore.hasMessages && currentSessionId.value) {
+    await updateSession(currentSessionId.value, { messages: chatStore.messages })
+  }
+  
+  // 加载选中的会话
+  const session = await getSession(sessionId)
+  if (session) {
+    currentSessionId.value = session.id
+    chatStore.setMessages(session.messages)
+  }
+}
+
+// 删除会话
+const handleDeleteSession = async (sessionId: string) => {
+  if (sessionId === currentSessionId.value) {
+    // 如果删除的是当前会话，切换到新会话
+    await handleNewChat()
+  }
+  await loadSessions()
+}
+
+// 清空所有会话
+const handleClearAll = async () => {
+  currentSessionId.value = null
+  chatStore.clearHistory()
+  sessions.value = []
   inputText.value = ''
   inputRef.value?.focus()
+}
+
+// 加载所有会话
+const loadSessions = async () => {
+  sessionsLoading.value = true
+  try {
+    sessions.value = await getAllSessions()
+  } finally {
+    sessionsLoading.value = false
+  }
+}
+
+// 保存当前会话到 IndexedDB
+const saveCurrentSession = async () => {
+  if (!currentSessionId.value || !chatStore.hasMessages) return
+  await updateSession(currentSessionId.value, { messages: chatStore.messages })
+  await loadSessions()
 }
 
 // 自动调整输入框高度
@@ -279,6 +354,12 @@ const handleSend = async () => {
   // 重置输入框高度
   if (inputRef.value) {
     inputRef.value.style.height = 'auto'
+  }
+
+  // 如果没有当前会话，先创建一个
+  if (!currentSessionId.value) {
+    const newSession = await createSession([])
+    currentSessionId.value = newSession.id
   }
 
   // 创建用户消息和AI占位消息
@@ -313,8 +394,8 @@ const handleSend = async () => {
         })
         isStreaming.value = false
         chatStore.setLoading(false)
-        // 保存到LocalStorage
-        saveHistory(chatStore.messages)
+        // 保存到 IndexedDB
+        saveCurrentSession()
       },
       onError: (error) => {
         // 处理错误
@@ -325,8 +406,8 @@ const handleSend = async () => {
         chatStore.setError(error)
         isStreaming.value = false
         chatStore.setLoading(false)
-        // 保存到LocalStorage
-        saveHistory(chatStore.messages)
+        // 保存到 IndexedDB
+        saveCurrentSession()
       }
     })
   } catch (error) {
@@ -342,23 +423,34 @@ const handleSend = async () => {
 }
 
 // 处理提示词选择
-const handlePromptSelect = (prompt: string) => {
+const handlePromptSelect = async (prompt: string) => {
+  // 如果没有当前会话，先创建一个
+  if (!currentSessionId.value) {
+    const newSession = await createSession([])
+    currentSessionId.value = newSession.id
+    await loadSessions()
+  }
   inputText.value = prompt
   handleSend()
 }
 
-// 清空历史
+// 清空历史（保留兼容）
 const handleClearHistory = () => {
-  chatStore.clearHistory()
-  clearStorage()
+  handleClearAll()
 }
 
 // 组件挂载时加载历史
-onMounted(() => {
-  const history = loadHistory()
-  if (history && history.messages.length > 0) {
-    chatStore.setMessages(history.messages)
+onMounted(async () => {
+  // 加载所有会话
+  await loadSessions()
+  
+  // 如果有会话，加载最近的一个
+  if (sessions.value.length > 0) {
+    const latestSession = sessions.value[0]
+    currentSessionId.value = latestSession.id
+    chatStore.setMessages(latestSession.messages)
   }
+  
   // 加载保存的模型设置
   const savedModel = localStorage.getItem('ai-chat-model')
   if (savedModel && availableModels.some(m => m.value === savedModel)) {
@@ -375,12 +467,12 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// 监听消息变化，保存到LocalStorage
+// 监听消息变化，自动保存
 watch(
   () => chatStore.messages,
-  (messages) => {
-    if (messages.length > 0 && !isStreaming.value) {
-      saveHistory(messages)
+  async (messages) => {
+    if (messages.length > 0 && !isStreaming.value && currentSessionId.value) {
+      await saveCurrentSession()
     }
   },
   { deep: true }
@@ -400,6 +492,16 @@ watch(
   font-family: 'Noto Sans SC', 'Space Grotesk', sans-serif;
   position: relative;
   overflow: hidden;
+}
+
+/* 主体包装器 */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  height: calc(100vh - 72px);
 }
 
 /* 动态背景 */
@@ -557,7 +659,6 @@ watch(
 .main-content {
   flex: 1;
   position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -759,59 +860,22 @@ watch(
 .input-area {
   position: fixed;
   bottom: 0;
-  left: 0;
+  left: 280px;
   right: 0;
   padding: 1rem 2rem 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(10, 10, 15, 0.95);
   backdrop-filter: blur(20px);
   z-index: 50;
+  transition: left 0.3s ease;
 }
 
 .input-area-content {
   display: flex;
   align-items: center;
   gap: 1rem;
-  max-width: 1100px;
+  max-width: 900px;
   margin: 0 auto;
-}
-
-/* 左侧操作按钮 */
-.input-actions-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: #a1a1aa;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-}
-
-.new-chat-btn:hover {
-  background: rgba(34, 197, 94, 0.1);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #4ade80;
-}
-
-.action-btn .btn-text {
-  font-weight: 500;
 }
 
 /* 右侧模型选择 */
@@ -1050,10 +1114,6 @@ watch(
     padding: 0 1rem;
   }
 
-  /* .chat-header {
-    padding: 1rem 0;
-  } */
-
   .chat-title h1 {
     font-size: 1.25rem;
   }
@@ -1072,6 +1132,7 @@ watch(
   }
 
   .input-area {
+    left: 0;
     padding: 0.75rem 1rem 1rem;
   }
 
@@ -1080,7 +1141,6 @@ watch(
     gap: 0.75rem;
   }
 
-  .input-actions-left,
   .input-actions-right {
     order: 2;
   }
@@ -1090,14 +1150,6 @@ watch(
     width: 100%;
     padding: 0.5rem;
     border-radius: 12px;
-  }
-
-  .action-btn .btn-text {
-    display: none;
-  }
-
-  .action-btn {
-    padding: 0.5rem;
   }
 
   .model-name {
