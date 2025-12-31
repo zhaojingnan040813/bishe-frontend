@@ -1,0 +1,24 @@
+# Netlify 部署配置文件
+
+[build]
+  # 构建命令
+  command = "npm run build"
+  # 构建输出目录
+  publish = "dist"
+
+# API 代理配置 - 将前端的 /api 请求代理到腾讯云后端
+[[redirects]]
+  from = "/api/*"
+  to = "https://zjn-backend-165954-5-1362504576.sh.run.tcloudbase.com/api/:splat"
+  status = 200
+  force = true
+  # 保持原始请求头
+  headers = {X-From = "Netlify"}
+
+# 环境变量（可选，也可以在 Netlify Dashboard 中配置）
+[build.environment]
+  NODE_VERSION = "18"
+
+# 防止 Netlify 自动优化图片（如果不需要）
+[build.processing]
+  skip_processing = false
