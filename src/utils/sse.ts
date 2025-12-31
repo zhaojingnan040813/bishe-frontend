@@ -105,6 +105,7 @@ export async function connectSSE(options: SSEOptions): Promise<void> {
         timeout = 60000 // 默认60秒超时
     } = options
 
+    // TODO: 根据实际API地址调整
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
     const url = `${baseUrl}/ai/chat/stream`
 
