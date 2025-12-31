@@ -235,7 +235,7 @@ const formatTime = (timestamp: number): string => {
   padding: 1rem;
   overflow: hidden;
   flex: 1;
-  min-height: 900px;
+  min-height: 100vh;
 }
 
 .sidebar-actions {
@@ -342,6 +342,8 @@ const formatTime = (timestamp: number): string => {
   margin: 0 -0.5rem;
   padding: 0 0.5rem;
   min-height: 0;
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 8px;
 }
 
 .sessions-list::-webkit-scrollbar {
@@ -367,6 +369,7 @@ const formatTime = (timestamp: number): string => {
   color: #71717a;
   font-size: 0.85rem;
   gap: 0.75rem;
+  min-height: 100%;
 }
 
 .loading-spinner {
@@ -386,6 +389,7 @@ const formatTime = (timestamp: number): string => {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-height: 100%;
 }
 
 .session-item {
