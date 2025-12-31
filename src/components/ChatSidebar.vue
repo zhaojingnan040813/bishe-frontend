@@ -172,6 +172,14 @@ const handleDelete = (id: string) => {
   dialogConfig.type = 'warning'
   dialogConfig.confirmText = '删除'
   dialogConfig.onConfirm = async () => {
+    // 如果删除的是当前选中的对话，先跳转到下一条或上一条
+    if (id === props.currentSessionId) {
+      const currentIndex = filteredSessions.value.findIndex(s => s.id === id)
+      const nextSession = filteredSessions.value[currentIndex + 1] || filteredSessions.value[currentIndex - 1]
+      if (nextSession) {
+        emit('selectSession', nextSession.id)
+      }
+    }
     await deleteSession(id)
     emit('deleteSession', id)
     emit('refresh')
